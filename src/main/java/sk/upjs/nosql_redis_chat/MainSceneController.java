@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.core.RedisTemplate;
 
@@ -17,6 +18,8 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 
 public class MainSceneController {
+	
+	public static final String CHAT_CHANNEL_NAME = "upjsChat_JDZ";
 
     @FXML private ListView<String> chatAreaListView;
     @FXML private Button sendButton;
@@ -24,6 +27,14 @@ public class MainSceneController {
     @FXML private TextField menoTextField;
 
 	private ObservableList<String> spravy;
+	private RedisTemplate<String, String> redisTemplate;
+	private RedisConnection redisConnection;
+	
+	public MainSceneController() {
+		ApplicationContext context = new AnnotationConfigApplicationContext(RedisConfiguration.class);
+		redisTemplate = context.getBean(RedisTemplate.class);
+		redisConnection = context.getBean(RedisConnection.class);
+	}
 
     @FXML
     void initialize() {
@@ -39,10 +50,12 @@ public class MainSceneController {
 			public void handle(ActionEvent event) {
 				String text = textToSendTextField.textProperty().getValue();
 				if (text != null && text.trim().length() > 0) {
-          //TODO poslat data
+					String name = menoTextField.textProperty().getValue();
+					redisTemplate.convertAndSend(CHAT_CHANNEL_NAME, name + ": " + text);
 				}
 			}
 		});
-      //TODO pocuvat na spravy od ostatnych
+    	SubscriberService service = new SubscriberService(redisConnection, spravy);
+    	service.start();
     }
 }
